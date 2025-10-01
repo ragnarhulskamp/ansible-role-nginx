@@ -5,12 +5,14 @@
     state: absent
   when: nginx_remove_default_vhost | bool
   notify: restart nginx
+  become: yes
 
 - name: Ensure nginx_vhost_path exists.
   file:
     path: "{{ nginx_vhost_path }}"
     state: directory
   notify: reload nginx
+  become: yes
 
 - name: Add managed vhost config files.
   template:
@@ -21,23 +23,57 @@
     group: "{{ root_group }}"
     mode: 0644
   when: item.state|default('present') != 'absent'
-  with_items: "{{ nginx_vhosts }}"
+  loop: "{{ nginx_vhosts }}"
   notify: reload nginx
   tags:
     - skip_ansible_lint
+  become: yes
 
 - name: Remove managed vhost config files.
   file:
     path: "{{ nginx_vhost_path }}/{{ item.filename|default(item.server_name.split(' ')[0] ~ '.conf') }}"
     state: absent
   when: item.state|default('present') == 'absent'
-  with_items: "{{ nginx_vhosts }}"
+  loop: "{{ nginx_vhosts }}"
   notify: reload nginx
   tags:
     - skip_ansible_lint
+  become: yes
+
+- name: Add managed vhost logs directory if it doesn't exist
+  file:
+    state: directory
+    path: "{{ nginx_www_root }}/{{ item.server_name.split(' ')[0] }}/logs"
+    mode: 0755
+    owner: nginx
+    group: nginx
+  loop: "{{ nginx_vhosts }}"
+  become: yes
+
+
+- name: Add managed vhost public_html directory if it doesn't exist
+  file:
+    state: directory
+    path: "{{ nginx_www_root }}/{{ item.server_name.split(' ')[0] }}/public_html"
+    mode: 0755
+    owner: nginx
+    group: nginx
+  loop: "{{ nginx_vhosts }}"
+  become: yes
+
+- name: Remove managed vhost directory
+  file:
+    type: directory
+    path: "{{ nginx_www_root }}/{{ item.server_name.split(' ')[0] }}"
+    owner: nginx
+    group: nginx
+  when: item.state|default('present') == 'absent'
+  loop: "{{ nginx_vhosts }}"
+  become: yes
 
 - name: Remove legacy vhosts.conf file.
   file:
     path: "{{ nginx_vhost_path }}/vhosts.conf"
     state: absent
   notify: reload nginx
+  become: yes

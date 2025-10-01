@@ -16,4 +16,4 @@
       changed_when: false
 
   roles:
-    - role: geerlingguy.nginx
+    - role: ansible-role-nginx
