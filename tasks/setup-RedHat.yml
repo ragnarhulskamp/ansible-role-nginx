@@ -7,10 +7,62 @@
     group: "{{ root_group }}"
     mode: 0644
   when: nginx_yum_repo_enabled | bool
-  become: yes
+  become: true
 
 - name: Ensure nginx is installed.
-  package:
-    name: "{{ nginx_package_name }}"
-    state: present
-  become: yes
+  ansible.builtin.raw: |
+    set -e
+    if rpm -q {{ nginx_package_name }} >/dev/null 2>&1; then
+      exit 0
+    fi
+    if command -v dnf >/dev/null 2>&1; then
+      dnf -y install {{ nginx_package_name }}
+    else
+      yum -y install {{ nginx_package_name }}
+    fi
+    echo __nginx_install_changed__
+  register: nginx_install
+  changed_when: "'__nginx_install_changed__' in (nginx_install.stdout | default(''))"
+  become: true
+
+- name: Ensure SELinux port management tools are installed.
+  ansible.builtin.raw: |
+    set -e
+    if rpm -q {{ selinux_port_pkg }} >/dev/null 2>&1; then
+      exit 0
+    fi
+    if command -v dnf >/dev/null 2>&1; then
+      dnf -y install {{ selinux_port_pkg }}
+    else
+      yum -y install {{ selinux_port_pkg }}
+    fi
+    echo __nginx_selinux_tools_changed__
+  vars:
+    selinux_port_pkg: "{{ 'policycoreutils-python-utils' if (ansible_distribution_major_version | int) >= 8 else 'policycoreutils-python' }}"
+  register: nginx_selinux_port_tools
+  changed_when: "'__nginx_selinux_tools_changed__' in (nginx_selinux_port_tools.stdout | default(''))"
+  when:
+    - ansible_selinux is defined
+    - ansible_selinux.status != 'disabled'
+  become: true
+
+- name: Allow nginx backend ports in SELinux
+  ansible.builtin.raw: |
+    set -e
+    if semanage port -l | awk '$1=="http_port_t" && $2=="tcp"{print $3}' | tr ',' '\n' | tr -d ' ' | grep -x "{{ item }}" >/dev/null 2>&1; then
+      exit 0
+    fi
+    if semanage port -l | awk '$2=="tcp"{print $3}' | tr ',' '\n' | tr -d ' ' | grep -x "{{ item }}" >/dev/null 2>&1; then
+      semanage port -m -t http_port_t -p tcp {{ item }}
+    else
+      semanage port -a -t http_port_t -p tcp {{ item }}
+    fi
+    echo changed
+  register: nginx_selinux_ports
+  changed_when: "'changed' in (nginx_selinux_ports.stdout | default(''))"
+  loop: "{{ nginx_backend_http_ports }}"
+  when:
+    - ansible_selinux is defined
+    - ansible_selinux.status != 'disabled'
+    - nginx_backend_http_ports | length > 0
+  become: true

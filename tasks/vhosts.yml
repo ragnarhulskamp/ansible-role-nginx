@@ -45,8 +45,9 @@
     state: directory
     path: "{{ nginx_www_root }}/{{ item.server_name.split(' ')[0] }}/logs"
     mode: 0755
-    owner: nginx
-    group: nginx
+    owner: "{{ nginx_user }}"
+    group: "{{ nginx_user }}"
+  when: item.state | default('present') != 'absent'
   loop: "{{ nginx_vhosts }}"
   become: yes
 
@@ -56,18 +57,17 @@
     state: directory
     path: "{{ nginx_www_root }}/{{ item.server_name.split(' ')[0] }}/public_html"
     mode: 0755
-    owner: nginx
-    group: nginx
+    owner: "{{ nginx_user }}"
+    group: "{{ nginx_user }}"
+  when: item.state | default('present') != 'absent'
   loop: "{{ nginx_vhosts }}"
   become: yes
 
 - name: Remove managed vhost directory
   file:
-    type: directory
+    state: absent
     path: "{{ nginx_www_root }}/{{ item.server_name.split(' ')[0] }}"
-    owner: nginx
-    group: nginx
-  when: item.state|default('present') == 'absent'
+  when: item.state | default('present') == 'absent'
   loop: "{{ nginx_vhosts }}"
   become: yes
 

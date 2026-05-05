@@ -5,6 +5,10 @@ nginx_default_release: ""
 # Used only for Redhat installation, enables source Nginx repo.
 nginx_yum_repo_enabled: true
 
+# SELinux ports used for backend upstreams (mapped to http_port_t).
+nginx_backend_http_ports:
+  - 9000
+
 # Use the official Nginx PPA for Ubuntu, and the version to use if so.
 nginx_ppa_use: false
 nginx_ppa_version: stable

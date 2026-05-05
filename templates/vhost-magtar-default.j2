@@ -1,4 +1,13 @@
 {% block server_redirect %}
+{% set listen_value = item.listen | default('80') %}
+{% set enable_http_redirect = item.redirect_http_to_https | default('443' in listen_value) | bool %}
+{% if enable_http_redirect and item.server_name is defined %}
+server {
+    listen       80;
+    server_name  {{ item.server_name }};
+    return       301 https://$server_name$request_uri;
+}
+{% endif %}
 {% if item.server_name_redirect is defined %}
 server {
     listen       {{ item.listen | default('80') }};
@@ -17,30 +26,31 @@ server {
 {% if item.server_name is defined %}
     server_name {{ item.server_name }};
 {% endif %}
-{% if item.root is defined %}
-    root {{ item.root }};
-{% endif %}
+{% set root_path = item.root | default((nginx_www_root | default('/srv/www')) ~ '/' ~ item.server_name.split(' ')[0] ~ '/public_html') %}
+    root {{ root_path }};
     index {{ item.index | default('index.html index.htm') }};
 {% if item.error_page is defined %}
     error_page {{ item.error_page }};
 {% endif %}
 
-    access_log /srv/www/{{ item.server_name.split(" ")[0] }}/logs/access.log;
-    error_log /srv/www/{{ item.server_name.split(" ")[0] }}/logs/error.log;
+    access_log {{ nginx_www_root | default('/srv/www') }}/{{ item.server_name.split(" ")[0] }}/logs/access.log;
+    error_log {{ nginx_www_root | default('/srv/www') }}/{{ item.server_name.split(" ")[0] }}/logs/error.log;
 
-{% if item.php is defined %}
+{% if item.php | default(false) | bool %}
     location ~ \.php$ {
         fastcgi_split_path_info ^(.+\.php)(/.+)$;
-        fastcgi_pass unix:/var/run/php5-fpm.sock;
+        {% set listen = php_fpm_listen | default('/run/php-fpm/www.sock') %}
+        fastcgi_pass {{ listen if listen is match('^(unix:|[a-zA-Z]+://|[^/]+:[0-9]+)') else 'unix:' ~ listen }};
         fastcgi_index index.php;
         fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
         include fastcgi_params;
     }
 {% endif %}
 
-{% if item.standard_ssl is defined %}
-    ssl_certificate     /etc/pki/tls/certs/LetsEncryptCert-{{ item.cert_name }}.pem;
-    ssl_certificate_key /etc/pki/tls/private/LetsEncryptCert-{{ item.cert_name }}.key;
+{% if item.standard_ssl | default(false) | bool %}
+    # Default to Lego-issued certificates
+    ssl_certificate     /etc/pki/tls/lego/certificates/{{ item.cert_name }}.pem;
+    ssl_certificate_key /etc/pki/tls/lego/certificates/{{ item.cert_name }}.key;
     ssl_protocols       TLSv1.1 TLSv1.2;
     ssl_ciphers         HIGH:!aNULL:!MD5;
 {% endif %}

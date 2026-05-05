@@ -1,19 +1,37 @@
 ---
 - name: Converge
   hosts: all
-
+  become: true
   vars:
-    nginx_use_ppa: true
-    nginx_remove_default_vhost: true
+    nginx_remove_default_vhost: false
+    nginx_backend_http_ports: []
     nginx_vhosts:
-      - server_name: "test.dev"
-        root: "/var/www/test"
-
+      - listen: "443 ssl http2"
+        server_name: "example.test"
+        cert_name: "example.test"
+        index: "index.html"
+        standard_ssl: true
+        php: false
+        state: "present"
+        template: "vhost-magtar-default.j2"
   pre_tasks:
-    - name: Update apt cache.
-      apt: update_cache=yes cache_valid_time=600
-      when: ansible_os_family == 'Debian'
-      changed_when: false
+    - name: Ensure test certificate directory exists
+      ansible.builtin.file:
+        path: /etc/pki/tls/lego/certificates
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Generate self-signed certificate for nginx
+      ansible.builtin.command: >-
+        openssl req -x509 -nodes -newkey rsa:2048
+        -keyout /etc/pki/tls/lego/certificates/example.test.key
+        -out /etc/pki/tls/lego/certificates/example.test.pem
+        -subj /CN=example.test
+        -days 1
+      args:
+        creates: /etc/pki/tls/lego/certificates/example.test.pem
 
   roles:
     - role: ansible-role-nginx

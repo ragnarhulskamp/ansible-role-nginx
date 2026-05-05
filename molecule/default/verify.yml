@@ -1,0 +1,23 @@
+---
+- name: Verify nginx role
+  hosts: all
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Check nginx configuration syntax
+      ansible.builtin.command: nginx -t
+      changed_when: false
+
+    - name: Inspect generated nginx files
+      ansible.builtin.stat:
+        path: "{{ item }}"
+      loop:
+        - /etc/nginx/conf.d/example.test.conf
+        - /etc/pki/tls/lego/certificates/example.test.pem
+        - /etc/pki/tls/lego/certificates/example.test.key
+      register: nginx_role_files
+
+    - name: Assert generated nginx files exist
+      ansible.builtin.assert:
+        that:
+          - nginx_role_files.results | map(attribute='stat.exists') | min

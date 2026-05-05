@@ -155,6 +155,11 @@ Configures Nginx's [`log_format`](http://nginx.org/en/docs/http/ngx_http_log_mod
 
 By default, this role will ensure Nginx is running and enabled at boot after Nginx is configured. You can use these variables to override this behavior if installing in a container or further control over the service state is required.
 
+    nginx_backend_http_ports:
+      - 9000
+
+(For SELinux-enabled RHEL/CentOS) Ports to label `http_port_t` so nginx/httpd can reach backend services without enabling broad network access. Set to `[]` to skip.
+
 ## Overriding configuration templates
 
 If you can't customize via variables because an option isn't exposed, you can override the template used to generate the virtualhost configuration files or the `nginx.conf` file.
