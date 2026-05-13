@@ -21,6 +21,8 @@
       yum -y install {{ nginx_package_name }}
     fi
     echo __nginx_install_changed__
+  args:
+    executable: /bin/bash
   register: nginx_install
   changed_when: "'__nginx_install_changed__' in (nginx_install.stdout | default(''))"
   become: true
@@ -37,6 +39,8 @@
       yum -y install {{ selinux_port_pkg }}
     fi
     echo __nginx_selinux_tools_changed__
+  args:
+    executable: /bin/bash
   vars:
     selinux_port_pkg: "{{ 'policycoreutils-python-utils' if (ansible_distribution_major_version | int) >= 8 else 'policycoreutils-python' }}"
   register: nginx_selinux_port_tools
@@ -58,6 +62,8 @@
       semanage port -a -t http_port_t -p tcp {{ item }}
     fi
     echo changed
+  args:
+    executable: /bin/bash
   register: nginx_selinux_ports
   changed_when: "'changed' in (nginx_selinux_ports.stdout | default(''))"
   loop: "{{ nginx_backend_http_ports }}"

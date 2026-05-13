@@ -51,10 +51,17 @@ class NginxRoleStructureTests(unittest.TestCase):
         nginx_install = next(task for task in tasks if task["name"] == "Ensure nginx is installed.")
         self.assertIn("ansible.builtin.raw", nginx_install)
         self.assertIn("__nginx_install_changed__", nginx_install["ansible.builtin.raw"])
+        self.assertEqual(nginx_install["args"]["executable"], "/bin/bash")
         self.assertEqual(
             nginx_install["changed_when"],
             "'__nginx_install_changed__' in (nginx_install.stdout | default(''))",
         )
+
+        selinux_tools = next(task for task in tasks if task["name"] == "Ensure SELinux port management tools are installed.")
+        self.assertEqual(selinux_tools["args"]["executable"], "/bin/bash")
+
+        selinux_ports = next(task for task in tasks if task["name"] == "Allow nginx backend ports in SELinux")
+        self.assertEqual(selinux_ports["args"]["executable"], "/bin/bash")
 
     def test_molecule_default_scenario_uses_podman_rocky8_and_ansible_verify(self):
         molecule = load_yaml("molecule/default/molecule.yml")
