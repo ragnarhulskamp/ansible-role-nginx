@@ -40,6 +40,11 @@ class NginxRoleStructureTests(unittest.TestCase):
         self.assertIn("php_fpm_listen | default('/run/php-fpm/www.sock')", template)
         self.assertIn("/etc/pki/tls/lego/certificates/{{ item.cert_name }}.pem", template)
 
+    def test_default_vhost_template_renders_optional_ipv6_listener(self):
+        template = (REPO / "templates/vhost.j2").read_text(encoding="utf-8")
+        self.assertIn("{% if item.listen6 is defined %}", template)
+        self.assertIn("listen {{ item.listen6 }};", template)
+
     def test_redhat_setup_manages_selinux_backend_ports(self):
         tasks = load_yaml("tasks/setup-RedHat.yml")
         self.assertIn("nginx_backend_http_ports", load_yaml("defaults/main.yml"))
