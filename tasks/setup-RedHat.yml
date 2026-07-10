@@ -43,6 +43,8 @@
     executable: /bin/bash
   register: nginx_logrotate_install
   changed_when: "'__nginx_logrotate_install_changed__' in (nginx_logrotate_install.stdout | default(''))"
+  tags:
+    - nginx_logrotate
   become: true
 
 - name: Ensure SELinux port management tools are installed.

@@ -23,6 +23,18 @@ class NginxRoleStructureTests(unittest.TestCase):
         self.assertEqual(len(nginx_conf_tasks), 1)
         self.assertEqual(nginx_conf_tasks[0]["name"], "Copy nginx configuration in place")
 
+    def test_variable_setup_runs_for_tagged_operations(self):
+        tasks = load_yaml("tasks/main.yml")
+        include_vars = next(task for task in tasks if task["name"] == "Include OS-specific variables.")
+        define_user = next(task for task in tasks if task["name"] == "Define nginx_user.")
+        self.assertEqual(include_vars["tags"], ["always"])
+        self.assertEqual(define_user["tags"], ["always"])
+
+    def test_redhat_setup_include_runs_for_tagged_logrotate(self):
+        tasks = load_yaml("tasks/main.yml")
+        redhat_include = next(task for task in tasks if task.get("include_tasks") == "setup-RedHat.yml")
+        self.assertEqual(redhat_include["tags"], ["always"])
+
     def test_absent_vhosts_remove_managed_directory(self):
         tasks = load_yaml("tasks/vhosts.yml")
         remove_dir = next(task for task in tasks if task["name"] == "Remove managed vhost directory")
@@ -60,6 +72,7 @@ class NginxRoleStructureTests(unittest.TestCase):
         self.assertEqual(package_task["package"]["name"], "logrotate")
         self.assertEqual(package_task["package"]["state"], "present")
         self.assertEqual(package_task["when"], "ansible_os_family != 'RedHat'")
+        self.assertEqual(package_task["tags"], ["nginx_logrotate"])
         self.assertTrue(package_task["become"])
 
         template_tasks = [
@@ -72,6 +85,7 @@ class NginxRoleStructureTests(unittest.TestCase):
         self.assertEqual(template_task["template"]["owner"], "root")
         self.assertEqual(template_task["template"]["group"], "{{ root_group }}")
         self.assertEqual(template_task["template"]["mode"], 0o644)
+        self.assertEqual(template_task["tags"], ["nginx_logrotate"])
         self.assertTrue(template_task["become"])
 
     def test_vhost_logrotate_template_uses_wildcard_policy_and_reopens_logs(self):
@@ -127,6 +141,7 @@ class NginxRoleStructureTests(unittest.TestCase):
             logrotate_install["changed_when"],
             "'__nginx_logrotate_install_changed__' in (nginx_logrotate_install.stdout | default(''))",
         )
+        self.assertEqual(logrotate_install["tags"], ["nginx_logrotate"])
         self.assertTrue(logrotate_install["become"])
 
     def test_molecule_default_scenario_uses_podman_rocky8_and_ansible_verify(self):
