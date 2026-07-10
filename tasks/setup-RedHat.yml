@@ -27,6 +27,24 @@
   changed_when: "'__nginx_install_changed__' in (nginx_install.stdout | default(''))"
   become: true
 
+- name: Ensure logrotate is installed.
+  ansible.builtin.raw: |
+    set -e
+    if rpm -q logrotate >/dev/null 2>&1; then
+      exit 0
+    fi
+    if command -v dnf >/dev/null 2>&1; then
+      dnf -y install logrotate
+    else
+      yum -y install logrotate
+    fi
+    echo __nginx_logrotate_install_changed__
+  args:
+    executable: /bin/bash
+  register: nginx_logrotate_install
+  changed_when: "'__nginx_logrotate_install_changed__' in (nginx_logrotate_install.stdout | default(''))"
+  become: true
+
 - name: Ensure SELinux port management tools are installed.
   ansible.builtin.raw: |
     set -e

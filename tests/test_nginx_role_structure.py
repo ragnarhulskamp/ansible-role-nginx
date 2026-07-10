@@ -59,6 +59,7 @@ class NginxRoleStructureTests(unittest.TestCase):
         package_task = package_tasks[0]
         self.assertEqual(package_task["package"]["name"], "logrotate")
         self.assertEqual(package_task["package"]["state"], "present")
+        self.assertEqual(package_task["when"], "ansible_os_family != 'RedHat'")
         self.assertTrue(package_task["become"])
 
         template_tasks = [
@@ -112,6 +113,21 @@ class NginxRoleStructureTests(unittest.TestCase):
 
         selinux_ports = next(task for task in tasks if task["name"] == "Allow nginx backend ports in SELinux")
         self.assertEqual(selinux_ports["args"]["executable"], "/bin/bash")
+
+    def test_redhat_setup_installs_logrotate_without_dnf_module(self):
+        tasks = load_yaml("tasks/setup-RedHat.yml")
+        logrotate_install = next(task for task in tasks if task["name"] == "Ensure logrotate is installed.")
+        self.assertIn("ansible.builtin.raw", logrotate_install)
+        self.assertIn("rpm -q logrotate", logrotate_install["ansible.builtin.raw"])
+        self.assertIn("dnf -y install logrotate", logrotate_install["ansible.builtin.raw"])
+        self.assertIn("yum -y install logrotate", logrotate_install["ansible.builtin.raw"])
+        self.assertIn("__nginx_logrotate_install_changed__", logrotate_install["ansible.builtin.raw"])
+        self.assertEqual(logrotate_install["args"]["executable"], "/bin/bash")
+        self.assertEqual(
+            logrotate_install["changed_when"],
+            "'__nginx_logrotate_install_changed__' in (nginx_logrotate_install.stdout | default(''))",
+        )
+        self.assertTrue(logrotate_install["become"])
 
     def test_molecule_default_scenario_uses_podman_rocky8_and_ansible_verify(self):
         molecule = load_yaml("molecule/default/molecule.yml")

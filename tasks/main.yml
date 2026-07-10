@@ -37,6 +37,7 @@
   package:
     name: logrotate
     state: present
+  when: ansible_os_family != 'RedHat'
   become: yes
 
 - name: Copy nginx vhost logrotate configuration in place
