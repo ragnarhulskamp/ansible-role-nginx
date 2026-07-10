@@ -45,6 +45,51 @@ class NginxRoleStructureTests(unittest.TestCase):
         self.assertIn("{% if item.listen6 is defined %}", template)
         self.assertIn("listen {{ item.listen6 }};", template)
 
+    def test_vhost_logrotate_defaults_are_configurable(self):
+        defaults = load_yaml("defaults/main.yml")
+        self.assertIn("nginx_vhost_logrotate_min_size", defaults)
+        self.assertIn("nginx_vhost_logrotate_rotate", defaults)
+        self.assertEqual(defaults["nginx_vhost_logrotate_min_size"], "10M")
+        self.assertEqual(defaults["nginx_vhost_logrotate_rotate"], 30)
+
+    def test_main_tasks_install_and_manage_vhost_logrotate(self):
+        tasks = load_yaml("tasks/main.yml")
+        package_tasks = [task for task in tasks if task.get("name") == "Ensure logrotate is installed."]
+        self.assertEqual(len(package_tasks), 1)
+        package_task = package_tasks[0]
+        self.assertEqual(package_task["package"]["name"], "logrotate")
+        self.assertEqual(package_task["package"]["state"], "present")
+        self.assertTrue(package_task["become"])
+
+        template_tasks = [
+            task for task in tasks if task.get("name") == "Copy nginx vhost logrotate configuration in place"
+        ]
+        self.assertEqual(len(template_tasks), 1)
+        template_task = template_tasks[0]
+        self.assertEqual(template_task["template"]["src"], "nginx-vhost-logrotate.j2")
+        self.assertEqual(template_task["template"]["dest"], "/etc/logrotate.d/nginx-vhost-logs")
+        self.assertEqual(template_task["template"]["owner"], "root")
+        self.assertEqual(template_task["template"]["group"], "{{ root_group }}")
+        self.assertEqual(template_task["template"]["mode"], 0o644)
+        self.assertTrue(template_task["become"])
+
+    def test_vhost_logrotate_template_uses_wildcard_policy_and_reopens_logs(self):
+        template_path = REPO / "templates/nginx-vhost-logrotate.j2"
+        self.assertTrue(template_path.exists())
+        template = template_path.read_text(encoding="utf-8")
+        self.assertIn("{{ nginx_www_root }}/*/logs/*.log {", template)
+        self.assertIn("daily", template)
+        self.assertIn("minsize {{ nginx_vhost_logrotate_min_size }}", template)
+        self.assertIn("rotate {{ nginx_vhost_logrotate_rotate }}", template)
+        self.assertIn("compress", template)
+        self.assertIn("delaycompress", template)
+        self.assertIn("missingok", template)
+        self.assertIn("notifempty", template)
+        self.assertIn("create 0644 {{ nginx_user }} {{ nginx_user }}", template)
+        self.assertIn("sharedscripts", template)
+        self.assertIn("postrotate", template)
+        self.assertIn("nginx -s reopen", template)
+
     def test_redhat_setup_manages_selinux_backend_ports(self):
         tasks = load_yaml("tasks/setup-RedHat.yml")
         self.assertIn("nginx_backend_http_ports", load_yaml("defaults/main.yml"))

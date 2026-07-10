@@ -23,6 +23,8 @@ nginx_conf_template: "nginx.conf.j2"
 nginx_vhost_template: "vhost.j2"
 
 nginx_www_root: "/srv/www"
+nginx_vhost_logrotate_min_size: "10M"
+nginx_vhost_logrotate_rotate: 30
 
 nginx_worker_processes: >-
   "{{ ansible_processor_vcpus | default(ansible_processor_count) }}"

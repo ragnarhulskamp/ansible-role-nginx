@@ -1,0 +1,14 @@
+{{ nginx_www_root }}/*/logs/*.log {
+    daily
+    minsize {{ nginx_vhost_logrotate_min_size }}
+    rotate {{ nginx_vhost_logrotate_rotate }}
+    compress
+    delaycompress
+    missingok
+    notifempty
+    create 0644 {{ nginx_user }} {{ nginx_user }}
+    sharedscripts
+    postrotate
+        nginx -s reopen >/dev/null 2>&1 || true
+    endscript
+}

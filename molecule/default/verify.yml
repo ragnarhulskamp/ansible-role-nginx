@@ -13,6 +13,7 @@
         path: "{{ item }}"
       loop:
         - /etc/nginx/conf.d/example.test.conf
+        - /etc/logrotate.d/nginx-vhost-logs
         - /etc/pki/tls/lego/certificates/example.test.pem
         - /etc/pki/tls/lego/certificates/example.test.key
       register: nginx_role_files

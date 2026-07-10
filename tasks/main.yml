@@ -33,6 +33,21 @@
   when: ansible_os_family == 'Archlinux'
   
 
+- name: Ensure logrotate is installed.
+  package:
+    name: logrotate
+    state: present
+  become: yes
+
+- name: Copy nginx vhost logrotate configuration in place
+  template:
+    src: nginx-vhost-logrotate.j2
+    dest: /etc/logrotate.d/nginx-vhost-logs
+    owner: root
+    group: "{{ root_group }}"
+    mode: 0644
+  become: yes
+
 # Vhost configuration.
 - import_tasks: vhosts.yml
   
