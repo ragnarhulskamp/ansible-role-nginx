@@ -24,6 +24,9 @@ http {
 {% block http_basic %}
     include       {{ nginx_mime_file_path }};
     default_type  application/octet-stream;
+    types {
+        application/manifest+json webmanifest;
+    }
 
     server_names_hash_bucket_size {{ nginx_server_names_hash_bucket_size }};
 
@@ -47,7 +50,10 @@ http {
 {% endblock %}
 
 {% block http_gzip %}
-    # gzip on;
+    gzip {{ nginx_gzip }};
+    gzip_vary {{ nginx_gzip_vary }};
+    gzip_min_length {{ nginx_gzip_min_length }};
+    gzip_types {{ nginx_gzip_types | join(' ') }};
 {% endblock %}
 
 {% if nginx_extra_http_options %}

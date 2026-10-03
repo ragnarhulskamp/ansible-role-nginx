@@ -13,6 +13,21 @@ def load_yaml(relative_path):
 
 
 class NginxRoleStructureTests(unittest.TestCase):
+    def test_http_defaults_enable_safe_static_delivery(self):
+        defaults = load_yaml("defaults/main.yml")
+        template = (REPO / "templates/nginx.conf.j2").read_text(encoding="utf-8")
+
+        self.assertEqual(defaults["nginx_server_tokens"], "off")
+        self.assertEqual(defaults["nginx_gzip"], "on")
+        self.assertEqual(defaults["nginx_gzip_vary"], "on")
+        self.assertEqual(defaults["nginx_gzip_min_length"], 1024)
+        self.assertIn("application/manifest+json webmanifest;", template)
+        self.assertIn("gzip {{ nginx_gzip }};", template)
+        self.assertIn("gzip_vary {{ nginx_gzip_vary }};", template)
+        self.assertIn("gzip_min_length {{ nginx_gzip_min_length }};", template)
+        self.assertIn("application/javascript", defaults["nginx_gzip_types"])
+        self.assertIn("application/manifest+json", defaults["nginx_gzip_types"])
+
     def test_main_tasks_configure_nginx_conf_once(self):
         tasks = load_yaml("tasks/main.yml")
         nginx_conf_tasks = [
