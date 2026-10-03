@@ -2,6 +2,7 @@
 - name: validate nginx configuration
   command: nginx -t -c {{ nginx_conf_file_path }}
   changed_when: false
+  become: yes
 
 - name: restart nginx
   service: name=nginx state=restarted

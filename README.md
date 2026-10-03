@@ -92,7 +92,7 @@ TCP connection options. See [this blog post](https://t37.net/nginx-optimization-
 
 Nginx keepalive settings. Timeout should be set higher (10s+) if you have more polling-style traffic (AJAX-powered sites especially), or lower (<10s) if you have a site where most users visit a few pages and don't send any further requests.
 
-    nginx_server_tokens: "on"
+    nginx_server_tokens: "off"
 
 Nginx server_tokens settings. Controls whether nginx responds with it's version in HTTP headers. Set to `"off"` to disable.
 

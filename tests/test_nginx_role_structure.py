@@ -79,7 +79,9 @@ class NginxRoleStructureTests(unittest.TestCase):
         )
 
         self.assertEqual(validation_task["command"], "nginx -t -c {{ nginx_conf_file_path }}")
+        self.assertEqual(validation_task["when"], "nginx_service_state != 'stopped'")
         self.assertEqual(validation_handler["command"], "nginx -t -c {{ nginx_conf_file_path }}")
+        self.assertTrue(validation_handler["become"])
         self.assertLess(tasks.index(validation_task), tasks.index(service_task))
 
     def test_variable_setup_runs_for_tagged_operations(self):
