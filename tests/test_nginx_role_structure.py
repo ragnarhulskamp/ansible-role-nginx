@@ -25,6 +25,7 @@ class NginxRoleStructureTests(unittest.TestCase):
         self.assertIn("gzip {{ nginx_gzip }};", template)
         self.assertIn("gzip_vary {{ nginx_gzip_vary }};", template)
         self.assertIn("gzip_min_length {{ nginx_gzip_min_length }};", template)
+        self.assertIn("gzip_types {{ nginx_gzip_types | join(' ') }};", template)
         self.assertIn("application/javascript", defaults["nginx_gzip_types"])
         self.assertIn("application/manifest+json", defaults["nginx_gzip_types"])
 
