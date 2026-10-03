@@ -76,6 +76,11 @@
     - reload nginx
   become: yes
 
+- name: Validate nginx configuration before starting service.
+  command: nginx -t -c {{ nginx_conf_file_path }}
+  changed_when: false
+  become: yes
+
 - name: Ensure nginx service is running as configured.
   service:
     name: nginx

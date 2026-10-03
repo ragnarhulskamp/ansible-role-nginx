@@ -65,6 +65,23 @@ class NginxRoleStructureTests(unittest.TestCase):
         self.assertLess(validation_index, handler_names.index("reload nginx"))
         self.assertLess(validation_index, handler_names.index("restart nginx"))
 
+    def test_nginx_configuration_validation_uses_role_path_before_service_start(self):
+        tasks = load_yaml("tasks/main.yml")
+        handlers = load_yaml("handlers/main.yml")
+        validation_task = next(
+            task for task in tasks if task.get("name") == "Validate nginx configuration before starting service."
+        )
+        service_task = next(
+            task for task in tasks if task.get("name") == "Ensure nginx service is running as configured."
+        )
+        validation_handler = next(
+            handler for handler in handlers if handler.get("name") == "validate nginx configuration"
+        )
+
+        self.assertEqual(validation_task["command"], "nginx -t -c {{ nginx_conf_file_path }}")
+        self.assertEqual(validation_handler["command"], "nginx -t -c {{ nginx_conf_file_path }}")
+        self.assertLess(tasks.index(validation_task), tasks.index(service_task))
+
     def test_variable_setup_runs_for_tagged_operations(self):
         tasks = load_yaml("tasks/main.yml")
         include_vars = next(task for task in tasks if task["name"] == "Include OS-specific variables.")
