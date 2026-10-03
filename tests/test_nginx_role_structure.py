@@ -64,6 +64,10 @@ class NginxRoleStructureTests(unittest.TestCase):
         validation_index = handler_names.index("validate nginx configuration")
         self.assertLess(validation_index, handler_names.index("reload nginx"))
         self.assertLess(validation_index, handler_names.index("restart nginx"))
+        for handler_name in ("validate nginx configuration", "reload nginx", "restart nginx"):
+            with self.subTest(handler=handler_name):
+                handler = next(handler for handler in handlers if handler["name"] == handler_name)
+                self.assertEqual(handler["when"], "nginx_service_state != 'stopped'")
 
     def test_nginx_configuration_validation_uses_role_path_before_service_start(self):
         tasks = load_yaml("tasks/main.yml")
