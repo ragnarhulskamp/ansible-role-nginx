@@ -72,6 +72,7 @@
     group: "{{ root_group }}"
     mode: 0644
   notify:
+    - validate nginx configuration
     - reload nginx
   become: yes
 

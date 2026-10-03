@@ -39,6 +39,32 @@ class NginxRoleStructureTests(unittest.TestCase):
         self.assertEqual(len(nginx_conf_tasks), 1)
         self.assertEqual(nginx_conf_tasks[0]["name"], "Copy nginx configuration in place")
 
+    def test_nginx_configuration_changes_validate_before_service_action(self):
+        main_tasks = load_yaml("tasks/main.yml")
+        vhost_tasks = load_yaml("tasks/vhosts.yml")
+        handlers = load_yaml("handlers/main.yml")
+        expected_handlers = {
+            "Copy nginx configuration in place": "reload nginx",
+            "Remove default nginx vhost config file (if configured).": "restart nginx",
+            "Ensure nginx_vhost_path exists.": "reload nginx",
+            "Add managed vhost config files.": "reload nginx",
+            "Remove managed vhost config files.": "reload nginx",
+            "Remove legacy vhosts.conf file.": "reload nginx",
+        }
+        task_by_name = {task["name"]: task for task in main_tasks + vhost_tasks if "name" in task}
+
+        for task_name, service_handler in expected_handlers.items():
+            with self.subTest(task=task_name):
+                self.assertEqual(
+                    task_by_name[task_name]["notify"],
+                    ["validate nginx configuration", service_handler],
+                )
+
+        handler_names = [handler["name"] for handler in handlers]
+        validation_index = handler_names.index("validate nginx configuration")
+        self.assertLess(validation_index, handler_names.index("reload nginx"))
+        self.assertLess(validation_index, handler_names.index("restart nginx"))
+
     def test_variable_setup_runs_for_tagged_operations(self):
         tasks = load_yaml("tasks/main.yml")
         include_vars = next(task for task in tasks if task["name"] == "Include OS-specific variables.")

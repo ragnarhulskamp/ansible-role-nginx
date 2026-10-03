@@ -4,14 +4,18 @@
     path: "{{ nginx_default_vhost_path }}"
     state: absent
   when: nginx_remove_default_vhost | bool
-  notify: restart nginx
+  notify:
+    - validate nginx configuration
+    - restart nginx
   become: yes
 
 - name: Ensure nginx_vhost_path exists.
   file:
     path: "{{ nginx_vhost_path }}"
     state: directory
-  notify: reload nginx
+  notify:
+    - validate nginx configuration
+    - reload nginx
   become: yes
 
 - name: Add managed vhost config files.
@@ -24,7 +28,9 @@
     mode: 0644
   when: item.state|default('present') != 'absent'
   loop: "{{ nginx_vhosts }}"
-  notify: reload nginx
+  notify:
+    - validate nginx configuration
+    - reload nginx
   tags:
     - skip_ansible_lint
   become: yes
@@ -35,7 +41,9 @@
     state: absent
   when: item.state|default('present') == 'absent'
   loop: "{{ nginx_vhosts }}"
-  notify: reload nginx
+  notify:
+    - validate nginx configuration
+    - reload nginx
   tags:
     - skip_ansible_lint
   become: yes
@@ -75,5 +83,7 @@
   file:
     path: "{{ nginx_vhost_path }}/vhosts.conf"
     state: absent
-  notify: reload nginx
+  notify:
+    - validate nginx configuration
+    - reload nginx
   become: yes
