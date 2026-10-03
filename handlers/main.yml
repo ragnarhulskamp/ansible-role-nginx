@@ -8,7 +8,9 @@
 - name: restart nginx
   service: name=nginx state=restarted
   when: nginx_service_state != 'stopped'
+  become: yes
 
 - name: reload nginx
   service: name=nginx state=reloaded
   when: nginx_service_state != 'stopped'
+  become: yes
