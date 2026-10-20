@@ -44,6 +44,17 @@ http {
     keepalive_requests {{ nginx_keepalive_requests }};
 
     server_tokens {{ nginx_server_tokens }};
+    ssl_protocols {{ nginx_ssl_protocols }};
+    ssl_ciphers {{ nginx_ssl_ciphers }};
+    ssl_prefer_server_ciphers on;
+    ssl_session_tickets off;
+    map $scheme $nginx_hsts {
+        default "";
+        https "max-age={{ nginx_hsts_max_age }}";
+    }
+{% if nginx_security_headers_enabled | bool %}
+    include {{ nginx_conf_path }}/snippets/security-headers.conf;
+{% endif %}
 {% if nginx_proxy_cache_path %}
     proxy_cache_path {{ nginx_proxy_cache_path }};
 {% endif %}

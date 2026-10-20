@@ -9,6 +9,40 @@
   when: nginx_yum_repo_enabled | bool
   become: true
 
+- name: Remove role-owned upstream repo when distribution packages are selected
+  ansible.builtin.file:
+    path: /etc/yum.repos.d/nginx.repo
+    state: absent
+  when: not nginx_yum_repo_enabled | bool
+  become: true
+
+- name: Inspect enabled distribution nginx stream
+  ansible.builtin.command: cat /etc/dnf/modules.d/nginx.module
+  register: nginx_enabled_stream
+  failed_when: nginx_enabled_stream.rc not in [0, 1]
+  changed_when: false
+  check_mode: false
+  when: nginx_redhat_module_stream | length > 0
+  become: true
+
+- name: Switch nginx to the supported distribution stream
+  ansible.builtin.command:
+    argv:
+      - dnf
+      - --setopt=timeout=20
+      - --setopt=retries=2
+      - -y
+      - module
+      - switch-to
+      - "nginx:{{ nginx_redhat_module_stream }}"
+  when:
+    - nginx_redhat_module_stream | length > 0
+    - not (nginx_enabled_stream.stdout is regex("(?m)^stream\\s*=\\s*" ~ (nginx_redhat_module_stream | regex_escape) ~ "\\s*$") and nginx_enabled_stream.stdout is regex("(?m)^state\\s*=\\s*enabled\\s*$"))
+  become: true
+  notify:
+    - validate nginx configuration
+    - restart nginx
+
 - name: Ensure nginx is installed.
   ansible.builtin.raw: |
     set -e
@@ -73,10 +107,10 @@
 - name: Allow nginx backend ports in SELinux
   ansible.builtin.raw: |
     set -e
-    if semanage port -l | awk '$1=="http_port_t" && $2=="tcp"{print $3}' | tr ',' '\n' | tr -d ' ' | grep -x "{{ item }}" >/dev/null 2>&1; then
+    if semanage port -l | awk '$1=="http_port_t" && $2=="tcp"{for (i=3; i<=NF; i++) print $i}' | tr ',' '\n' | tr -d ' ' | grep -x "{{ item }}" >/dev/null 2>&1; then
       exit 0
     fi
-    if semanage port -l | awk '$2=="tcp"{print $3}' | tr ',' '\n' | tr -d ' ' | grep -x "{{ item }}" >/dev/null 2>&1; then
+    if semanage port -l | awk '$2=="tcp"{for (i=3; i<=NF; i++) print $i}' | tr ',' '\n' | tr -d ' ' | grep -x "{{ item }}" >/dev/null 2>&1; then
       semanage port -m -t http_port_t -p tcp {{ item }}
     else
       semanage port -a -t http_port_t -p tcp {{ item }}

@@ -4,6 +4,7 @@ nginx_default_release: ""
 
 # Used only for Redhat installation, enables source Nginx repo.
 nginx_yum_repo_enabled: true
+nginx_redhat_module_stream: ""
 
 # SELinux ports used for backend upstreams (mapped to http_port_t).
 nginx_backend_http_ports:
@@ -42,6 +43,10 @@ nginx_keepalive_timeout: "65"
 nginx_keepalive_requests: "100"
 
 nginx_server_tokens: "off"
+nginx_ssl_protocols: "TLSv1.2 TLSv1.3"
+nginx_ssl_ciphers: "ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256"
+nginx_security_headers_enabled: true
+nginx_hsts_max_age: 86400
 
 nginx_gzip: "on"
 nginx_gzip_vary: "on"

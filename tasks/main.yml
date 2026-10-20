@@ -59,6 +59,27 @@
     - nginx_logrotate
   become: yes
 
+- name: Ensure nginx security include directory exists
+  file:
+    path: "{{ nginx_conf_path }}/snippets"
+    state: directory
+    owner: root
+    group: "{{ root_group }}"
+    mode: '0755'
+  become: true
+
+- name: Install shared security headers for server and cache locations
+  template:
+    src: security-headers.j2
+    dest: "{{ nginx_conf_path }}/snippets/security-headers.conf"
+    owner: root
+    group: "{{ root_group }}"
+    mode: '0644'
+  become: true
+  notify:
+    - validate nginx configuration
+    - reload nginx
+
 # Vhost configuration.
 - import_tasks: vhosts.yml
   
